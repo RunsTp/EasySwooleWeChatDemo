@@ -23,7 +23,7 @@ class WeChatEvent extends Controller
     public function onOfficialAccountGet()
     {
         // 将微信发来的 params 参数创建为 AccessCheck Bean对象
-        $accessCheckBean = new AccessCheck($this->request()->getCookieParams());
+        $accessCheckBean = new AccessCheck($this->request()->getRequestParam());
 
         // 使用名为 'default' WeChat 对象进行验证
         $verify = WeChatManager::getInstance()->weChat('default')->officialAccount()->server()->accessCheck($accessCheckBean);
@@ -45,7 +45,7 @@ class WeChatEvent extends Controller
     public function onOfficialAccountPost()
     {
         // 将微信发来的 params 参数创建为 AccessCheck Bean对象
-        $accessCheckBean = new AccessCheck($this->request()->getCookieParams());
+        $accessCheckBean = new AccessCheck($this->request()->getRequestParam());
 
         // 使用名为 'default' WeChat 对象进行验证
         $verify = WeChatManager::getInstance()->weChat('default')->officialAccount()->server()->accessCheck($accessCheckBean);
