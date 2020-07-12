@@ -3,6 +3,7 @@
 namespace EasySwoole\EasySwoole;
 
 
+use App\Service\Wechat\NetworkReleases;
 use App\WeChat\WeChatManager;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
@@ -43,6 +44,15 @@ class EasySwooleEvent implements Event
         ];
         $weChatConfig->officialAccount($configArray);
 
+        // 开放平台注册
+        $configArray = [
+            'componentAppId'     => 'you componentAppId',
+            'componentAppSecret' => 'you componentAppSecret',
+            'token'     => 'you token',
+            'aesKey'    => 'you aesKey',
+        ];
+        $weChatConfig->openPlatform($configArray);
+
         // 注册WeChat对象到全局List
         WeChatManager::getInstance()->register('default', new WeChat($weChatConfig));
 
@@ -64,6 +74,15 @@ class EasySwooleEvent implements Event
             // 这里如果返回的是 null 则不会给用户响应任何内容 即微信的默认 "success"
             return $reply;
         });
+
+        /**
+         * 获取名为 default WeChat openPlatform 对象 用来注册全网发布事件
+         */
+        $openPlatform = WeChatManager::getInstance()->weChat('default')->openPlatform();
+        /**
+         * 注册全网发布事件
+         */
+        NetworkReleases::register($openPlatform);
     }
 
     public static function onRequest(Request $request, Response $response): bool
