@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Service\Wechat;
+namespace App\Wechat;
 
 
 use EasySwoole\WeChat\Bean\OfficialAccount\Message\Text;

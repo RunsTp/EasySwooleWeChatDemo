@@ -3,7 +3,7 @@
 namespace EasySwoole\EasySwoole;
 
 
-use App\Service\Wechat\NetworkReleases;
+use App\Wechat\NetworkReleases;
 use App\WeChat\WeChatManager;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
