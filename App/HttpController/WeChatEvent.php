@@ -5,9 +5,11 @@ namespace App\HttpController;
 
 
 use App\WeChat\WeChatManager;
+use EasySwoole\EasySwoole\Config;
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\WeChat\Bean\OfficialAccount\AccessCheck;
+use EasySwoole\WeChat\WeChat;
 use Throwable;
 
 class WeChatEvent extends Controller
@@ -26,7 +28,13 @@ class WeChatEvent extends Controller
         $accessCheckBean = new AccessCheck($this->request()->getQueryParams());
 
         // 使用名为 'default' WeChat 对象进行验证
-        $verify = WeChatManager::getInstance()->weChat('default')->officialAccount()->server()->accessCheck($accessCheckBean);
+        $weChat = WeChatManager::getInstance()->weChat('default');
+        /**
+         * 动态创建可以使用这种方案，但是需要你在微信的回调地址哪里区分好每个appId
+         * 比如 设置为 /WeChatEvent/onOfficialAccountGet/{appId}
+         */
+        // $weChat = $this->dynamic($this->request()->getRequestParam('appId'));
+        $verify = $weChat->officialAccount()->server()->accessCheck($accessCheckBean);
 
         // 如果验证为真(来自于微信服务器的请求)
         if ($verify) {
@@ -48,7 +56,13 @@ class WeChatEvent extends Controller
         $accessCheckBean = new AccessCheck($this->request()->getQueryParams());
 
         // 使用名为 'default' WeChat 对象进行验证
-        $verify = WeChatManager::getInstance()->weChat('default')->officialAccount()->server()->accessCheck($accessCheckBean);
+        $weChat = WeChatManager::getInstance()->weChat('default');
+        /**
+         * 动态创建可以使用这种方案，但是需要你在微信的回调地址哪里区分好每个appId
+         * 比如 设置为 /WeChatEvent/onOfficialAccountPost/{appId}
+         */
+        // $weChat = $this->dynamic($this->request()->getRequestParam('appId'));
+        $verify = $weChat->officialAccount()->server()->accessCheck($accessCheckBean);
 
         // 验证请求来自于微信服务器
         if (!$verify) {
@@ -62,7 +76,7 @@ class WeChatEvent extends Controller
 
         // 将请求转发给名为 'default' WeChat接管 会返回 XML string 或者 null
         try {
-            $XML = WeChatManager::getInstance()->weChat('default')->officialAccount()->server()->parserRequest($rawContent);
+            $XML = $weChat->officialAccount()->server()->parserRequest($rawContent);
         } catch (Throwable $throwable) {
             // 这里我建议开发者 catch 住异常 无论如何给用户响应友好的提示 防止出现公众号异常的问题
             // TODO: 这里实现一个异常记录 和发送服务器异常通知给开发者的代码
@@ -70,5 +84,35 @@ class WeChatEvent extends Controller
 
         $this->response()->withStatus(Status::CODE_OK);
         $this->response()->write($XML ?? 'success');
+    }
+
+    /**
+     * 提供一个动态创建的例子
+     * 事实上动态创建的核心就是通过AppID 动态的从db OR file 等存储点动态读取config
+     * 在这里只需要动态的创建一个WeChat 对象并return 即可
+     * @param string $appId
+     * @return WeChat
+     */
+    private function dynamic(string $appId):WeChat
+    {
+        $weChatConfig = new \EasySwoole\WeChat\Config();
+        $weChatConfig->setTempDir(Config::getInstance()->getConf('TEMP_DIR'));
+
+        // 可以使用这种方案
+        $weChatConfig->officialAccount()->setAppId('you appId');
+        $weChatConfig->officialAccount()->setAppSecret('you appSecret');
+        $weChatConfig->officialAccount()->setToken('you token');
+        $weChatConfig->officialAccount()->setAesKey('you AesKey');
+
+        // 也可以使用这个方案
+        $configArray = [
+            'appId'     => 'you appId',
+            'appSecret' => 'you appSecret',
+            'token'     => 'you token',
+            'AesKey'    => 'you AesKey',
+        ];
+        $weChatConfig->officialAccount($configArray);
+        $weChat = new WeChat($weChatConfig);
+        return $weChat;
     }
 }
