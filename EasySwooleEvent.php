@@ -3,8 +3,12 @@
 namespace EasySwoole\EasySwoole;
 
 
+use App\Process\Consumer;
+use App\Process\Producer;
 use App\Wechat\NetworkReleases;
 use App\WeChat\WeChatManager;
+use EasySwoole\Component\Process\Manager;
+use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\Http\Request;
@@ -30,19 +34,19 @@ class EasySwooleEvent implements Event
         $weChatConfig->setTempDir(Config::getInstance()->getConf('TEMP_DIR'));
 
         // 可以使用这种方案
-        $weChatConfig->officialAccount()->setAppId('you appId');
-        $weChatConfig->officialAccount()->setAppSecret('you appSecret');
+        $weChatConfig->officialAccount()->setAppId('you AppId');
+        $weChatConfig->officialAccount()->setAppSecret('you AppSecret');
         $weChatConfig->officialAccount()->setToken('you token');
         $weChatConfig->officialAccount()->setAesKey('you AesKey');
 
         // 也可以使用这个方案
         $configArray = [
-            'appId'     => 'you appId',
-            'appSecret' => 'you appSecret',
+            'appId'     => 'you AppId',
+            'appSecret' => 'you AppSecret',
             'token'     => 'you token',
             'AesKey'    => 'you AesKey',
         ];
-        $weChatConfig->officialAccount($configArray);
+//        $weChatConfig->officialAccount($configArray);
 
         // 开放平台注册
         $configArray = [
@@ -83,6 +87,44 @@ class EasySwooleEvent implements Event
          * 注册全网发布事件
          */
         NetworkReleases::register($openPlatform);
+
+        $register->add($register::onWorkerStart, function ($server, $workId) {
+            /**
+             * 单独使用一个work 进程来刷新wechat AccessToken
+             */
+            if ($workId === 0) {
+                $accessToken = WeChatManager::getInstance()->weChat('default')->officialAccount()->accessToken();
+                /**
+                 * 如果 Token失效则立刻刷新
+                 */
+                if (empty($accessToken->getToken())) {
+                    $accessToken->refresh();
+                }
+                /**
+                 * 每 7180秒刷新一次
+                 */
+                Timer::getInstance()->loop(7180* 1000, function () use ($accessToken) {
+                    $accessToken->refresh();
+                });
+            }
+        });
+
+        /**
+         * 注册一个生产者 模拟生产数据
+         */
+        Manager::getInstance()->addProcess(new Producer());
+
+        /**
+         * 注册 消费者 模式处理数据
+         * 这里可以通过增加注册的消费者进程数量来提高消费能力
+         * 也可以通过在消费者进程内投递Task任务来提高
+         * 从可靠性的角度来讲，建议使用Process
+         * 但如果你业务量并不大，Task也是一个不错的方案
+         */
+        for ($i=0; $i<1; $i++) {
+            Manager::getInstance()->addProcess(new Consumer(['id' => $i]));
+        }
+
     }
 
     public static function onRequest(Request $request, Response $response): bool
