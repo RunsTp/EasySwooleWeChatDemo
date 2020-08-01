@@ -10,7 +10,7 @@ class Router extends AbstractRouter
 {
     function initialize(RouteCollector $routeCollector)
     {
-        $routeCollector->get('/weChat', '/WeChatEvent/onOfficialAccountGet');
-        $routeCollector->post('/weChat', '/WeChatEvent/onOfficialAccountPost');
+        $routeCollector->get('/weChat', '/WeChatEvent/onOfficialAccountGet[/{appId}]');
+        $routeCollector->post('/weChat', '/WeChatEvent/onOfficialAccountPost[/{appId}]');
     }
 }
